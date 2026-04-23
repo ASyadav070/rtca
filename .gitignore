@@ -1,0 +1,29 @@
+# Node.js
+node_modules/
+dist/
+build/
+.pnpm-debug.log
+
+# Next.js
+.next/
+out/
+.env*.local
+
+# Strapi
+.cache/
+public/uploads/
+.tmp/
+.env
+
+# Database
+*.db
+*.db-journal
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
