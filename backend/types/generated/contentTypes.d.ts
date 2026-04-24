@@ -370,7 +370,7 @@ export interface ApiMessageMessage extends Schema.CollectionType {
     singularName: 'message';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Attribute.DateTime;
@@ -380,7 +380,6 @@ export interface ApiMessageMessage extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-    publishedAt: Attribute.DateTime;
     room: Attribute.String;
     sender: Attribute.Relation<
       'api::message.message',

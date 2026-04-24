@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { generateAIResponse } from './services/ai';
 
 export default {
   async bootstrap({ strapi }: { strapi: any }) {
@@ -12,6 +13,8 @@ export default {
         const permissions = [
           { action: 'api::message.message.find', role: role.id },
           { action: 'api::message.message.create', role: role.id },
+          { action: 'plugin::users-permissions.user.find', role: role.id },
+          { action: 'plugin::users-permissions.user.findOne', role: role.id },
         ];
 
         for (const permission of permissions) {
@@ -76,7 +79,7 @@ export default {
       });
 
       socket.on('send-message', async (data) => {
-        // Persist to Strapi
+        // Persist User Message
         try {
           const user = await strapi.db.query('plugin::users-permissions.user').findOne({
             where: { username: data.username },
@@ -87,7 +90,6 @@ export default {
               text: data.text,
               room: data.room,
               sender: user?.id,
-              publishedAt: new Date(),
             },
           });
         } catch (error) {
@@ -95,6 +97,41 @@ export default {
         }
 
         io.to(data.room).emit('new-message', data);
+
+        // AI Bot logic
+        if (data.text.trim().startsWith('@bot')) {
+          io.to(data.room).emit('bot-typing', true);
+          
+          const prompt = data.text.replace('@bot', '').trim();
+          const aiResponse = await generateAIResponse({
+            roomName: data.room,
+            userPrompt: prompt,
+            strapi,
+          });
+
+          const botMessage = {
+            username: 'SYSTEM_BOT',
+            text: aiResponse,
+            room: data.room,
+            timestamp: new Date().toISOString(),
+          };
+
+          // Persist Bot Message
+          try {
+            await strapi.entityService.create('api::message.message', {
+              data: {
+                text: aiResponse,
+                room: data.room,
+                sender: null, // Virtual user
+              },
+            });
+          } catch (error) {
+            console.error('Error persisting bot message:', error);
+          }
+
+          io.to(data.room).emit('bot-typing', false);
+          io.to(data.room).emit('new-message', botMessage);
+        }
       });
 
       socket.on('disconnect', () => {
